@@ -5,7 +5,25 @@ const { dataSource } = require('../db/data-source')
 const logger = require('../utils/logger')('CreditPackage')
 
 router.get('/', async (req, res, next) => {
-
+try {
+      const packages = await dataSource.getRepository("CreditPackage").find({
+        select: ["id", "name", "credit_amount", "price"]
+      })
+      /* res.writeHead(200, headers)
+      res.write(JSON.stringify({
+        status: "success",
+        data: packages
+      }))
+      res.end() */
+       res.status(200).json ({
+        status: "success",
+        data: data
+       })
+    
+    } catch (error) {
+      
+      next(error)
+    }
 })
 
 router.post('/', async (req, res, next) => {
