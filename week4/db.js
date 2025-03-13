@@ -23,11 +23,11 @@ const CreditPackage = new EntitySchema({
     },
     price: {
       type: "numeric",
-      precision: 10,
-      scale: 2,
+      precision: 10,  //長度
+      scale: 2,  //小數點後2位
       nullable: false
     },
-    createdAt: {
+    created_at: {
       type: "timestamp",
       createDate: true,
       name: "created_at",
@@ -52,7 +52,7 @@ const Skill = new EntitySchema({
       nullable: false,
       unique: true
     },
-    createdAt: {
+    created_at: {
       type: "timestamp",
       createDate: true,
       name: "created_at",

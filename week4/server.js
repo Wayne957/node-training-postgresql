@@ -2,16 +2,13 @@ require("dotenv").config()
 const http = require("http")
 const AppDataSource = require("./db")
 
-function isUndefined (value) {
-  return value === undefined
+const isValidString = (value) => {
+  return typeof value === 'string' && value.trim() !== '';
 }
 
-function isNotValidSting (value) {
-  return typeof value !== "string" || value.trim().length === 0 || value === ""
-}
-
-function isNotValidInteger (value) {
-  return typeof value !== "number" || value < 0 || value % 1 !== 0
+// 可增加其他檢查: 例如正整數
+const isNumber = (value) => {
+  return typeof value === 'number' && !isNaN(value) && value > 0;
 }
 
 const requestListener = async (req, res) => {
@@ -48,10 +45,8 @@ const requestListener = async (req, res) => {
   } else if (req.url === "/api/credit-package" && req.method === "POST") {
     req.on("end", async () => {
       try {
-        const data = JSON.parse(body)
-        if (isUndefined(data.name) || isNotValidSting(data.name) ||
-                isUndefined(data.credit_amount) || isNotValidInteger(data.credit_amount) ||
-                isUndefined(data.price) || isNotValidInteger(data.price)) {
+        const { name, credit_amount, price } = JSON.parse(body);
+        if (!isValidString(name) || !isNumber(credit_amount) || !isNumber(price)) {
           res.writeHead(400, headers)
           res.write(JSON.stringify({
             status: "failed",
@@ -60,13 +55,13 @@ const requestListener = async (req, res) => {
           res.end()
           return
         }
-        const creditPackageRepo = await AppDataSource.getRepository("CreditPackage")
-        const existPackage = await creditPackageRepo.find({
+        const creditPackage = AppDataSource.getRepository("CreditPackage")
+        const findCreditPackage = await creditPackage.find({
           where: {
-            name: data.name
+            name: name
           }
         })
-        if (existPackage.length > 0) {
+        if (findCreditPackage.length > 0) {
           res.writeHead(409, headers)
           res.write(JSON.stringify({
             status: "failed",
@@ -75,12 +70,12 @@ const requestListener = async (req, res) => {
           res.end()
           return
         }
-        const newPackage = await creditPackageRepo.create({
-          name: data.name,
-          credit_amount: data.credit_amount,
-          price: data.price
+        const newCreditPackage = creditPackage.create({
+          name,
+          credit_amount,
+          price
         })
-        const result = await creditPackageRepo.save(newPackage)
+        const result = await creditPackage.save(newCreditPackage)
         res.writeHead(200, headers)
         res.write(JSON.stringify({
           status: "success",
@@ -88,7 +83,6 @@ const requestListener = async (req, res) => {
         }))
         res.end()
       } catch (error) {
-        console.error(error)
         res.writeHead(500, headers)
         res.write(JSON.stringify({
           status: "error",
@@ -99,8 +93,9 @@ const requestListener = async (req, res) => {
     })
   } else if (req.url.startsWith("/api/credit-package/") && req.method === "DELETE") {
     try {
-      const packageId = req.url.split("/").pop()
-      if (isUndefined(packageId) || isNotValidSting(packageId)) {
+      const creditPackageId = req.url.split("/").pop();
+
+      if (!isValidString(creditPackageId)) {
         res.writeHead(400, headers)
         res.write(JSON.stringify({
           status: "failed",
@@ -109,7 +104,8 @@ const requestListener = async (req, res) => {
         res.end()
         return
       }
-      const result = await AppDataSource.getRepository("CreditPackage").delete(packageId)
+      const result = await AppDataSource.getRepository("CreditPackage").delete(creditPackageId)
+      
       if (result.affected === 0) {
         res.writeHead(400, headers)
         res.write(JSON.stringify({
@@ -158,8 +154,8 @@ const requestListener = async (req, res) => {
   } else if (req.url === "/api/coaches/skill" && req.method === "POST") {
     req.on('end', async () => {
       try {
-        const data = JSON.parse(body)
-        if (isUndefined(data.name) || isNotValidSting(data.name)) {
+        const {name} = JSON.parse(body)
+        if (!isValidString(name)) {
           res.writeHead(400, headers)
           res.write(JSON.stringify({
             status: "failed",
@@ -168,13 +164,13 @@ const requestListener = async (req, res) => {
           res.end()
           return
         }
-        const skillRepo = await AppDataSource.getRepository("Skill")
-        const existSkill = await skillRepo.find({
+        const skillRepo = AppDataSource.getRepository("Skill")
+        const findSkill = await skillRepo.find({
           where: {
-            name: data.name
+            name: name
           }
         })
-        if (existSkill.length > 0) {
+        if (findSkill.length > 0) {
           res.writeHead(409, headers)
           res.write(JSON.stringify({
             status: "failed",
@@ -183,18 +179,17 @@ const requestListener = async (req, res) => {
           res.end()
           return
         }
-        const newSkill = await skillRepo.create({
-          name: data.name
+        const newSkill = skillRepo.create({
+          name: name
         })
         const result = await skillRepo.save(newSkill)
         res.writeHead(200, headers)
         res.write(JSON.stringify({
           status: "success",
-          data: []
+          data: result
         }))
         res.end()
       } catch (error) {
-        console.error(error)
         res.writeHead(500, headers)
         res.write(JSON.stringify({
           status: "error",
@@ -206,7 +201,7 @@ const requestListener = async (req, res) => {
   } else if (req.url.startsWith("/api/coaches/skill/") && req.method === "DELETE") {
   try {
     const skillId = req.url.split('/').pop();
-    if (isUndefined(skillId) || isNotValidSting(skillId)) {
+    if (!isValidString(skillId)) {
       res.writeHead(400, headers)
       res.write(JSON.stringify({
         status: "failed",
@@ -226,7 +221,7 @@ const requestListener = async (req, res) => {
       return
     }
     res.writeHead(200, headers)
-      res.write(JSON.stringify({
+    res.write(JSON.stringify({
         status: "success"
       }))
       res.end()
